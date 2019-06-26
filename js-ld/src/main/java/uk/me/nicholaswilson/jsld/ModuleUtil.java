@@ -20,7 +20,7 @@ class ModuleUtil {
   /**
    * Validates that the given Module is correct.
    */
-  public static void validateModule(Module module, String fileName) {
+  public static void validateModule(com.shapesecurity.shift.ast.Module module, String fileName) {
     Iterable<ValidationError> validationErrors = Validator.validate(module);
     if (validationErrors.iterator().hasNext()) {
       StringBuilder sb = new StringBuilder();
@@ -45,7 +45,7 @@ class ModuleUtil {
    * @param exportsOut The output of the Module's exports
    */
   public static void extractImportsExports(
-    Module module,
+    com.shapesecurity.shift.ast.Module module,
     String moduleFileName,
     List<Statement> moduleOut,
     List<ImportSpecifier> symbolImportsOut,

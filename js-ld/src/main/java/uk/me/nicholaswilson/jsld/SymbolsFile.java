@@ -14,7 +14,7 @@ import com.shapesecurity.shift.parser.Parser;
 class SymbolsFile {
 
   private final Path path;
-  private final Module module;
+  private final com.shapesecurity.shift.ast.Module module;
   private final List<ImportSpecifier> symbolImports = new ArrayList<>();
   private final List<Import> requirementsImports = new ArrayList<>();
   private final List<ExportSpecifier> exports = new ArrayList<>();
