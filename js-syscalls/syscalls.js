@@ -1018,6 +1018,31 @@ export function __syscall_uname(uts) {
   return 0;
 }
 
+
+
+//ssize_t writev (int, const struct iovec *, int);
+export function __syscall_writev(fd, iovec, nWritten  )
+{
+  
+  let piovec, niovec, result;
+  [piovec, result] = readS32(iovec);
+  if (!result)
+    throw new Error("Unable to read iovec address");
+  
+  [niovec, result] = readS32(iovec+4);
+    if (!result)
+      throw new Error("Unable to read iovec size");
+  
+  let buff = memory.getU8();
+  __root.console.log( buff.toString("utf8", piovec, piovec+nWritten ));
+
+  __root.console.log("iovec size =" +niovec);
+
+
+  return nWritten;
+}
+
+
 export { eNosys as __syscall_vfork } // No multiprocess in minscripten
 
 export { ePerm as __syscall_vhangup } // Fails unless root
@@ -1055,7 +1080,7 @@ export { eNosys as __syscall_sendmsg }
 export { eNosys as __syscall_sendto }
 export { eNosys as __syscall_stat }
 export { eNosys as __syscall_socketpair }
-export { eNosys as __syscall_writev }
+//export { eNosys as __syscall_writev }
 export { eNosys as __syscall_write }
 
 
