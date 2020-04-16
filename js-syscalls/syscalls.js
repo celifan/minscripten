@@ -215,6 +215,7 @@ const memory = new class {
     this.u8 = null;
     this.u32 = null;
     this.s32 = null;
+    this.f32 = null;
 
     const tester = new Uint32Array(1);
     tester[0] = 0x01;
@@ -233,6 +234,14 @@ const memory = new class {
       return u32;
     return (this.u32 = new Uint32Array(linearMem.buffer));
   }
+
+  getF32() {
+    let f32 = this.f32;
+    if (f32 !== null && f32.buffer == linearMem.buffer)
+      return f32;
+    return (this.f32 = new Float32Array(linearMem.buffer));
+  }
+
   getS32() {
     let s32 = this.s32;
     if (s32 !== null && s32.buffer == linearMem.buffer)
@@ -332,6 +341,15 @@ function readS32(address) {
     return [0, false];
   return [s32[address], true];
 }
+
+function readF32(address) {
+  address = address >>> 0;
+  const f32 = memory.getF32();
+  if ((address & 0x3) !== 0 || (address >>= 2) >= f32.length)
+    return [0, false];
+  return [f32[address], true];
+}
+
 function readU64(address) {
   let low, high, result;
   [low, result] = readU32(address);
