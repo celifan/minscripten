@@ -1040,24 +1040,32 @@ export function __syscall_uname(uts) {
 
 //ssize_t writev (int, const struct iovec *, int);
 export function __syscall_writev(fd, iovec, nWritten  )
-{
-  
+{ 
   let piovec, niovec, result;
-  [piovec, result] = readS32(iovec);
-  if (!result)
-    throw new Error("Unable to read iovec address");
-  
-  [niovec, result] = readS32(iovec+4);
-    if (!result)
-      throw new Error("Unable to read iovec size");
-  
   let buff = memory.getU8();
-  __root.console.log( buff.toString("utf8", piovec, piovec+nWritten ));
 
-  __root.console.log("iovec size =" +niovec);
+  let str = "";
+  let curr = iovec;
+  let bytes = 0;
+  for( let i=0; i< nWritten; ++i)
+  {
+    
+    [piovec, result] = readS32(curr);
+    curr +=4;
+    if (!result)
+      throw new Error("Unable to read iovec address");
+    
+    [niovec, result] = readS32(curr);
+      if (!result)
+        throw new Error("Unable to read iovec size");
+    curr+=4;
+    bytes+= niovec;
+    str += buff.toString("utf8", piovec, piovec+niovec )
+  }
+  //__root.console.log("iovec size =" +niovec);
+  __root.console.log( str);
 
-
-  return nWritten;
+  return bytes;
 }
 
 
