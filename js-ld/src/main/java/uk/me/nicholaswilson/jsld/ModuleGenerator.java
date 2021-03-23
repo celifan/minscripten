@@ -145,22 +145,10 @@ class ModuleGenerator {
     // Construct an expression that will calculate the file path for the WASM
     // module, relative to the current scriptStatements, and using the filename it has
     // on disk right now.
-    String wasmFileName = wasmFile.getPath().getFileName().toString();
+    
     CallExpression ce = new CallExpression(
-      new IdentifierExpression(FETCHER_VAR),
-      ImmutableList.of(new LiteralStringExpression(wasmFileName))
-    );
-
-    ce = new CallExpression(
-      new StaticMemberExpression("then", ce),
-      ImmutableList.of(ModuleUtil.parseFragmentExpression(
-        "function(bytes) { return WebAssembly.compile(bytes); }"
-      ))
-    );
-
-    ce = new CallExpression(
-      new StaticMemberExpression("then", ce),
-      ImmutableList.of(generateInstantiation())
+      generateInstantiation(),
+      ImmutableList.empty()
     );
 
     String wasmInstanceVar = "wasmInstance";
@@ -169,7 +157,7 @@ class ModuleGenerator {
     List<Statement> wasmInstanceStatements = new ArrayList<>();
     ModuleUtil.appendFragment(
       wasmInstanceStatements,
-      "const es = wasmInstance.exports;" +
+      "const es = wasmInstance.instance.exports;" +
         "let wasmEx;" +
         "function wrapExport(name) {" +
         "  const fn = es[name];" +
@@ -261,15 +249,21 @@ class ModuleGenerator {
         )
       ));
     }
+    
+    String wasmFileName = wasmFile.getPath().getFileName().toString();
+    
     instantiationStatements.add(new ReturnStatement(
       Maybe.of(
         new CallExpression(
           new StaticMemberExpression(
-            "instantiate",
+            "instantiateStreaming",
             new IdentifierExpression("WebAssembly")
           ),
           ImmutableList.of(
-            new IdentifierExpression(moduleVar),
+            new CallExpression(
+              new IdentifierExpression(FETCHER_VAR),
+              ImmutableList.of(new LiteralStringExpression(wasmFileName))
+            ),
             new ObjectExpression(
               ImmutableList.cons(
                 new DataProperty(
@@ -287,7 +281,7 @@ class ModuleGenerator {
       Maybe.empty(),
       false,
       new FormalParameters(
-        ImmutableList.of(new BindingIdentifier(moduleVar)),
+        ImmutableList.empty(),
         Maybe.empty()
       ),
       new FunctionBody(
@@ -327,9 +321,7 @@ class ModuleGenerator {
         "  return Promise.resolve(copy);" +
         "} : function(name) {" +
         "  const url = new root.URL(name,currentScript);" +
-        "  return root.fetch(url.toString()).then(function(response) {" +
-        "    return response.arrayBuffer();" +
-        "  });" +
+        "  return root.fetch(url.toString());" +
         "};" +
         "factory = factory.bind(null, root, fetcher);"
     );
