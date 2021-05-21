@@ -145,7 +145,7 @@ class ModuleGenerator {
     // Construct an expression that will calculate the file path for the WASM
     // module, relative to the current scriptStatements, and using the filename it has
     // on disk right now.
-    
+
     CallExpression ce = new CallExpression(
       generateInstantiation(),
       ImmutableList.empty()
@@ -157,7 +157,7 @@ class ModuleGenerator {
     List<Statement> wasmInstanceStatements = new ArrayList<>();
     ModuleUtil.appendFragment(
       wasmInstanceStatements,
-      "const es = wasmInstance.instance.exports;" +
+      "const es = wasmInstance.instance ? wasmInstance.instance.exports : wasmInstance.exports;" +
         "let wasmEx;" +
         "function wrapExport(name) {" +
         "  const fn = es[name];" +
@@ -213,7 +213,6 @@ class ModuleGenerator {
   }
 
   private Expression generateInstantiation() {
-    String moduleVar = "wasmModule";
     List<Statement> instantiationStatements = new ArrayList<>();
     for (MemoryDefinition memoryDefinition : memoryDefinitions) {
       // __symbols['<MEMORY_NAME>'] = new WebAssembly.Memory(limit)
@@ -249,34 +248,23 @@ class ModuleGenerator {
         )
       ));
     }
-    
+
     String wasmFileName = wasmFile.getPath().getFileName().toString();
-    
-    instantiationStatements.add(new ReturnStatement(
-      Maybe.of(
-        new CallExpression(
-          new StaticMemberExpression(
-            "instantiateStreaming",
-            new IdentifierExpression("WebAssembly")
-          ),
-          ImmutableList.of(
-            new CallExpression(
-              new IdentifierExpression(FETCHER_VAR),
-              ImmutableList.of(new LiteralStringExpression(wasmFileName))
-            ),
-            new ObjectExpression(
-              ImmutableList.cons(
-                new DataProperty(
-                  new IdentifierExpression(SYMBOLS_VAR),
-                  new StaticPropertyName(WasmFile.SYMBOLS_MODULE)
-                ),
-                wasmFile.getImports()
-              )
-            )
-          )
-        )
-      )
-    ));
+
+    ModuleUtil.appendFragment(
+      instantiationStatements,
+      "if(WebAssembly.instantiateStreaming)" +
+      "{" +
+      "    return WebAssembly.instantiateStreaming(" + FETCHER_VAR + "(\"" + wasmFileName + "\"),{env:" + SYMBOLS_VAR + "});" +
+      "}" +
+      "else" +
+      "{" +
+      "    return " + FETCHER_VAR + "(\"" + wasmFileName + "\").then(function(bytes)" +
+      "    {" +
+      "        return WebAssembly.compile(bytes);" +
+      "    }).then(function(wasmModule){return WebAssembly.instantiate(wasmModule, { env:" + SYMBOLS_VAR + "})});" +
+      "}");
+
     return new FunctionExpression(
       Maybe.empty(),
       false,
@@ -321,7 +309,13 @@ class ModuleGenerator {
         "  return Promise.resolve(copy);" +
         "} : function(name) {" +
         "  const url = new root.URL(name,currentScript);" +
+        "  if (WebAssembly.instantiateStreaming) {" +
         "  return root.fetch(url.toString());" +
+        "  } else {" +
+        "    return root.fetch(url.toString()).then(function(response) {" +
+        "      return response.arrayBuffer();" +
+        "    });" +
+        "  }" +
         "};" +
         "factory = factory.bind(null, root, fetcher);"
     );
